@@ -36,6 +36,11 @@
   .rail-header .brand{font-size:13px; letter-spacing:0.5px; color:#C9C7C5; margin-bottom:4px;}
   .rail-header .title{font-size:30px; line-height:1.05; color:var(--white);}
   .rail-section-label{padding:18px 24px 8px; font-size:12px; color:#9A9896; text-transform:uppercase; letter-spacing:0.6px;}
+  .rail-search{padding:16px 24px 0;}
+  .rail-search input{width:100%; padding:9px 11px; font-size:13.5px; border:1px solid rgba(255,255,255,0.22);
+    background:rgba(255,255,255,0.07); color:var(--white); border-radius:2px;}
+  .rail-search input::placeholder{color:#9A9896;}
+  .rail-empty{padding:10px 24px 4px; font-size:13px; color:#9A9896;}
   .fair-item{
     display:block; width:100%; text-align:left; background:none; border:none; color:var(--white);
     padding:14px 24px; cursor:pointer; border-left:3px solid transparent; transition:background 0.15s;
@@ -54,7 +59,7 @@
   /* ---------- MAIN ---------- */
   .main{flex:1; min-width:0; padding:0 0 60px;}
   .hero{padding:44px 48px 28px; border-bottom:1px solid var(--gray-line);}
-  .hero-img{width:100%; max-height:280px; object-fit:cover; display:block; margin-bottom:24px; background:var(--offwhite);}
+  .hero-img{width:100%; aspect-ratio:3.6/1; object-fit:cover; display:block; margin-bottom:24px; background:var(--offwhite);}
   .hero .stand-badge{display:inline-block; background:var(--offwhite); border:1px solid var(--gray-line);
     padding:4px 10px; font-size:13px; color:var(--gray); margin-top:14px; font-variant-numeric:tabular-nums;}
   .hero h1{font-size:46px; color:var(--charcoal); line-height:1.02;}
@@ -141,6 +146,7 @@
     .rail-header{border-bottom:none; border-right:1px solid rgba(255,255,255,0.12); flex:0 0 auto; padding:18px 20px;}
     .rail-header .title{font-size:22px;}
     .rail-section-label{display:none;}
+    .rail-search{display:none;}
     .fair-item{flex:0 0 auto; white-space:nowrap; border-left:none; border-bottom:3px solid transparent; padding:16px 18px;}
     .fair-item.active{border-left:none; border-bottom-color:var(--red);}
     .past-toggle{margin-top:0; border-top:none; border-left:1px solid rgba(255,255,255,0.12); flex:0 0 auto;}
@@ -212,7 +218,7 @@ const DEMO = {
 
 /* ---------- ESTADO ---------- */
 let DATA = {ferias:[], equipos:[], equipoComercial:[], recursos:[]};
-let state = {feriaId:null, tab:"info", showPast:false};
+let state = {feriaId:null, tab:"info", showPast:false, railQuery:""};
 const TOKEN_PARAM = new URLSearchParams(location.search).get('p');
 let tokenChecked = false; // para saber si el token no existe y avisar
 
@@ -303,9 +309,21 @@ function render(){
   }
   if(!state.feriaId) state.feriaId = pickDefaultFeria(DATA.ferias).FeriaID;
 
+  // Guardamos si el buscador tenía el foco antes de redibujar, para devolvérselo
+  // después (si no, el usuario pierde el cursor en cada letra que escribe).
+  const searchEl = document.getElementById('rail-search');
+  const hadFocus = searchEl && document.activeElement === searchEl;
+  const selStart = hadFocus ? searchEl.selectionStart : null;
+  const selEnd = hadFocus ? searchEl.selectionEnd : null;
+
+  const query = (state.railQuery || "").trim().toLowerCase();
+  const matchesQuery = f => !query ||
+    (f.Nombre || "").toLowerCase().includes(query) ||
+    (f.Ubicacion || "").toLowerCase().includes(query);
+
   const sorted = [...DATA.ferias].sort((a,b)=>normalizeDate(a.FechaInicio).localeCompare(normalizeDate(b.FechaInicio)));
-  const upcoming = sorted.filter(f => feriaStatus(f) !== "past");
-  const past = sorted.filter(f => feriaStatus(f) === "past").reverse();
+  const upcoming = sorted.filter(f => feriaStatus(f) !== "past" && matchesQuery(f));
+  const past = sorted.filter(f => feriaStatus(f) === "past" && matchesQuery(f)).reverse();
   const feria = DATA.ferias.find(f => f.FeriaID === state.feriaId) || DATA.ferias[0];
   const personalMatch = getPersonalMatch(feria.FeriaID);
   const tokenInvalid = TOKEN_PARAM && tokenChecked && !DATA.equipoComercial.some(p => (p.Token || "").trim() === TOKEN_PARAM.trim());
@@ -319,8 +337,11 @@ function render(){
           <div class="brand">ULMA PACKAGING</div>
           <div class="title">Centro de<br>Ferias</div>
         </div>
+        <div class="rail-search">
+          <input id="rail-search" type="text" placeholder="Buscar feria..." value="${state.railQuery || ""}" oninput="filterFerias(this.value)">
+        </div>
         <div class="rail-section-label">Próximas / en curso</div>
-        ${upcoming.map(f => railItem(f)).join("")}
+        ${upcoming.length ? upcoming.map(f => railItem(f)).join("") : `<div class="rail-empty">Sin resultados</div>`}
         <button class="past-toggle" onclick="togglePast()">${state.showPast ? "Ocultar ferias pasadas ▲" : `Ver ferias pasadas (${past.length}) ▼`}</button>
         ${state.showPast ? past.map(f => railItem(f)).join("") : ""}
       </nav>
@@ -331,6 +352,19 @@ function render(){
       </main>
     </div>
   `;
+
+  if(hadFocus){
+    const newSearchEl = document.getElementById('rail-search');
+    if(newSearchEl){
+      newSearchEl.focus();
+      newSearchEl.setSelectionRange(selStart, selEnd);
+    }
+  }
+}
+
+function filterFerias(value){
+  state.railQuery = value;
+  render();
 }
 
 function railItem(f){
