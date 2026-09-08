@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ULMA Packaging · Centro de Ferias</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --white:#FFFFFF;
+    --offwhite:#F7F6F5;
+    --charcoal:#222222;
+    --red:#CC0000;
+    --dark-red:#990000;
+    --gray:#6B6B6B;
+    --gray-line:#E4E2E0;
+    --rail-w:280px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--white);color:var(--charcoal);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  h1,h2,h3,.display{font-family:'Barlow Condensed',Impact,'Arial Narrow',sans-serif;
+    font-weight:700; letter-spacing:0.2px; margin:0;}
+  a{color:inherit;}
+  button{font-family:inherit;}
+
+  #app{display:flex; min-height:100vh;}
+
+  /* ---------- RAIL ---------- */
+  .rail{
+    width:var(--rail-w); flex:0 0 var(--rail-w); background:var(--charcoal); color:var(--white);
+    display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto;
+  }
+  .rail-header{padding:28px 24px 18px; border-bottom:1px solid rgba(255,255,255,0.12);}
+  .rail-header .brand{font-size:13px; letter-spacing:0.5px; color:#C9C7C5; margin-bottom:4px;}
+  .rail-header .title{font-size:30px; line-height:1.05; color:var(--white);}
+  .rail-section-label{padding:18px 24px 8px; font-size:12px; color:#9A9896; text-transform:uppercase; letter-spacing:0.6px;}
+  .fair-item{
+    display:block; width:100%; text-align:left; background:none; border:none; color:var(--white);
+    padding:14px 24px; cursor:pointer; border-left:3px solid transparent; transition:background 0.15s;
+  }
+  .fair-item:hover{background:rgba(255,255,255,0.06);}
+  .fair-item.active{border-left-color:var(--red); background:rgba(204,0,0,0.14);}
+  .fair-item .fname{font-size:19px; font-family:'Barlow Condensed',sans-serif; font-weight:700; line-height:1.1;}
+  .fair-item .fmeta{font-size:12.5px; color:#B7B5B3; margin-top:3px;}
+  .status-chip{display:inline-block; font-size:10.5px; padding:2px 7px; border-radius:2px; margin-top:6px;
+    letter-spacing:0.3px; font-family:'Inter',sans-serif;}
+  .status-live{background:var(--red); color:var(--white);}
+  .status-upcoming{background:rgba(255,255,255,0.14); color:var(--white);}
+  .past-toggle{padding:14px 24px; font-size:13px; color:#B7B5B3; background:none; border:none; cursor:pointer;
+    text-align:left; border-top:1px solid rgba(255,255,255,0.12); margin-top:auto;}
+
+  /* ---------- MAIN ---------- */
+  .main{flex:1; min-width:0; padding:0 0 60px;}
+  .hero{padding:44px 48px 28px; border-bottom:1px solid var(--gray-line);}
+  .hero-img{width:100%; max-height:280px; object-fit:cover; display:block; margin-bottom:24px; background:var(--offwhite);}
+  .hero .stand-badge{display:inline-block; background:var(--offwhite); border:1px solid var(--gray-line);
+    padding:4px 10px; font-size:13px; color:var(--gray); margin-top:14px; font-variant-numeric:tabular-nums;}
+  .hero h1{font-size:46px; color:var(--charcoal); line-height:1.02;}
+  .hero .subline{margin-top:10px; font-size:16px; color:var(--gray); display:flex; gap:18px; flex-wrap:wrap;}
+  .hero .subline b{color:var(--charcoal); font-weight:600;}
+
+  .tabs{display:flex; gap:2px; padding:0 48px; border-bottom:1px solid var(--gray-line); background:var(--white);
+    position:sticky; top:0; z-index:5;}
+  .tab-btn{padding:16px 18px; background:none; border:none; font-size:15px; color:var(--gray); cursor:pointer;
+    border-bottom:3px solid transparent; font-weight:600;}
+  .tab-btn.active{color:var(--charcoal); border-bottom-color:var(--red);}
+
+  .panel{padding:36px 48px;}
+  .info-grid{display:grid; grid-template-columns:1fr 1fr; gap:28px 40px;}
+  .info-block .label{font-size:12px; text-transform:uppercase; letter-spacing:0.5px; color:var(--gray); margin-bottom:6px;}
+  .info-block .value{font-size:16px; line-height:1.5;}
+  .info-block.full{grid-column:1 / -1;}
+  .desc-text{font-size:16px; line-height:1.65; color:var(--charcoal); max-width:70ch;}
+
+  .equip-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:22px;}
+  .equip-card{border:1px solid var(--gray-line); background:var(--white); overflow:hidden; cursor:pointer; transition:box-shadow 0.15s, transform 0.15s;}
+  .equip-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.08); transform:translateY(-2px);}
+  .equip-card img{width:100%; height:160px; object-fit:cover; display:block; background:var(--offwhite);}
+  .equip-card .body{padding:16px 18px 18px;}
+  .equip-card h3{font-size:22px; margin-bottom:6px;}
+  .equip-card p{font-size:14.5px; color:var(--gray); line-height:1.55; margin:0 0 14px;}
+  .equip-card p.clamp-2{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .btn-more{background:none; border:none; padding:0; font-size:13.5px; font-weight:600; color:var(--red);
+    cursor:pointer; text-decoration:none; border-bottom:1px solid var(--red);}
+
+  /* ---------- MODAL ---------- */
+  .modal-overlay{position:fixed; inset:0; background:rgba(34,34,34,0.55); display:flex; align-items:center;
+    justify-content:center; z-index:100; padding:24px;}
+  .modal-box{background:var(--white); max-width:640px; width:100%; max-height:86vh; overflow-y:auto; position:relative;}
+  .modal-box img{width:100%; max-height:320px; object-fit:cover; display:block; background:var(--offwhite);}
+  .modal-box .body{padding:28px 32px 32px;}
+  .modal-box h3{font-size:30px; margin-bottom:10px;}
+  .modal-box p{font-size:15.5px; color:var(--gray); line-height:1.6; margin:0 0 14px;}
+  .modal-box ul{margin:0 0 16px; padding-left:20px; font-size:15px; line-height:1.7;}
+  .modal-close{position:absolute; top:14px; right:14px; width:34px; height:34px; border-radius:50%; border:none;
+    background:rgba(255,255,255,0.9); font-size:20px; cursor:pointer; line-height:1;}
+
+  /* ---------- RECURSOS agrupados ---------- */
+  .res-group{margin-bottom:32px;}
+  .res-group-title{font-size:13px; text-transform:uppercase; letter-spacing:0.6px; color:var(--red);
+    font-weight:700; margin-bottom:4px;}
+
+  .pass-search{max-width:440px;}
+  .pass-search input{width:100%; padding:13px 14px; font-size:16px; border:1px solid var(--gray-line);
+    background:var(--offwhite); margin-bottom:14px;}
+  .pass-result{border:1px solid var(--gray-line); padding:18px 20px; display:flex; align-items:center; justify-content:space-between; gap:16px;}
+  .pass-result .who{font-size:17px; font-weight:600;}
+  .pass-result .who span{display:block; font-size:13px; color:var(--gray); font-weight:400; margin-top:2px;}
+  .btn-red{background:var(--red); color:var(--white); border:none; padding:11px 18px; font-size:14.5px;
+    font-weight:600; cursor:pointer; text-decoration:none; display:inline-block;}
+  .btn-red:hover{background:var(--dark-red);}
+  .pass-empty{color:var(--gray); font-size:14.5px; padding:16px 0;}
+
+  .res-list{display:flex; flex-direction:column;}
+  .res-row{display:flex; align-items:center; justify-content:space-between; padding:15px 0; border-bottom:1px solid var(--gray-line);}
+  .res-row .rtitle{font-size:16px; font-weight:600;}
+  .res-row .rtype{font-size:12.5px; color:var(--gray); text-transform:uppercase; letter-spacing:0.4px; margin-top:2px;}
+  .res-row a{font-size:14px; font-weight:600; color:var(--red); text-decoration:none;}
+
+  .demo-banner{background:#FFF4E5; border-bottom:1px solid #F0D9A8; color:#7A5A00; font-size:13.5px;
+    padding:10px 48px;}
+
+  .empty-state{color:var(--gray); font-size:15px; padding:20px 0;}
+
+  /* ---------- MOBILE ---------- */
+  .rail-toggle{display:none;}
+  @media (max-width:880px){
+    #app{flex-direction:column;}
+    .rail{position:relative; width:100%; height:auto; flex-direction:row; flex-wrap:nowrap;
+      overflow-x:auto; overflow-y:visible; align-items:center;}
+    .rail-header{border-bottom:none; border-right:1px solid rgba(255,255,255,0.12); flex:0 0 auto; padding:18px 20px;}
+    .rail-header .title{font-size:22px;}
+    .rail-section-label{display:none;}
+    .fair-item{flex:0 0 auto; white-space:nowrap; border-left:none; border-bottom:3px solid transparent; padding:16px 18px;}
+    .fair-item.active{border-left:none; border-bottom-color:var(--red);}
+    .past-toggle{margin-top:0; border-top:none; border-left:1px solid rgba(255,255,255,0.12); flex:0 0 auto;}
+    .hero{padding:26px 20px 20px;}
+    .hero h1{font-size:32px;}
+    .tabs{padding:0 20px; overflow-x:auto;}
+    .panel{padding:24px 20px;}
+    .info-grid{grid-template-columns:1fr;}
+    .demo-banner{padding:10px 20px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="app">Cargando...</div>
+
+<script>
+/* ===================== CONFIGURACIÓN =====================
+   Sustituye estas 4 URLs por los enlaces CSV publicados de tu Google Sheet
+   (Archivo > Compartir > Publicar en la web > elige la pestaña > formato CSV).
+   Mientras dejes los valores de ejemplo tal cual, el hub funciona con datos
+   de demostración para que puedas ver cómo se ve y se comporta.
+============================================================ */
+const CONFIG = {
+  csvFerias:          "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmA0fU4aMgNZcyRwrMFWTM_j6AMNNwvTpBeQetF4cvIFkQcwnUoaPyfJDk07nH3A/pub?gid=540404602&single=true&output=csv",
+  csvEquipos:         "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmA0fU4aMgNZcyRwrMFWTM_j6AMNNwvTpBeQetF4cvIFkQcwnUoaPyfJDk07nH3A/pub?gid=634470948&single=true&output=csv",
+  csvEquipoComercial: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmA0fU4aMgNZcyRwrMFWTM_j6AMNNwvTpBeQetF4cvIFkQcwnUoaPyfJDk07nH3A/pub?gid=1411149452&single=true&output=csv",
+  csvRecursos:        "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmA0fU4aMgNZcyRwrMFWTM_j6AMNNwvTpBeQetF4cvIFkQcwnUoaPyfJDk07nH3A/pub?gid=1606642252&single=true&output=csv"
+};
+
+const IS_DEMO = Object.values(CONFIG).some(v => v.startsWith("PEGA_AQUI"));
+
+/* Prueba el pase personal en modo demo abriendo este archivo con ?p=LAURA2027
+   o ?p=JON2027 al final de la URL. Sin ese parámetro, nadie ve ninguna
+   sección de pases. */
+
+/* ---------- DATOS DE DEMOSTRACIÓN ---------- */
+const DEMO = {
+  ferias: [
+    {FeriaID:"interpack2027", Nombre:"Interpack", FechaInicio:"2027-05-04", FechaFin:"2027-05-10",
+     FechasTexto:"4-10 mayo 2027", Ubicacion:"Düsseldorf, Alemania", Pabellon:"Pabellón 14", Stand:"A32",
+     Descripcion:"La feria de referencia mundial para envasado y procesos. Presentaremos nuestra nueva gama de líneas Wash Down y soluciones de monomateriales para Industria 4.0.",
+     Hotel:"Hotel Nikko Düsseldorf (tarifa corporativa reservada)", Transporte:"Traslado en shuttle desde el hotel a las 8:00 y 8:30",
+     ContactoNombre:"Ainhoa Etxeberria", ContactoTelefono:"+34 600 000 000", WebOficial:"https://www.interpack.com"},
+    {FeriaID:"empack2026", Nombre:"Empack Madrid", FechaInicio:"2026-10-14", FechaFin:"2026-10-15",
+     FechasTexto:"14-15 octubre 2026", Ubicacion:"Madrid, España", Pabellon:"Pabellón 6", Stand:"C18",
+     Descripcion:"Feria nacional enfocada en clientes de alimentación y bebidas del mercado ibérico.",
+     Hotel:"—", Transporte:"—", ContactoNombre:"Markel Agirre", ContactoTelefono:"+34 600 111 222",
+     WebOficial:"https://empack-madrid.es"}
+  ],
+  equipos: [
+    {FeriaID:"interpack2027", NombreEquipo:"SealFlex™ 300", Descripcion:"Termoselladora de alta velocidad para bandejas monomaterial.",
+     Argumentario:"Reduce el TCO hasta un 18% | Compatible con monomateriales reciclables | Cambio de formato en menos de 5 minutos",
+     FichaTecnicaURL:"https://drive.google.com/", ImagenURL:""},
+    {FeriaID:"interpack2027", NombreEquipo:"TightBag™ 500", Descripcion:"Envasadora al vacío en bolsa para productos frescos.",
+     Argumentario:"Mejora el OEE de la línea | Diseño Wash Down IP69 | Integración nativa con ULMAweCare",
+     FichaTecnicaURL:"https://drive.google.com/", ImagenURL:""}
+  ],
+  equipoComercial: [
+    {FeriaID:"interpack2027", Nombre:"Jon Ander Mugika", Filial:"ULMA Packaging Alemania", PaseURL:"https://drive.google.com/", Token:"JON2027"},
+    {FeriaID:"interpack2027", Nombre:"Laura Fernández", Filial:"ULMA Packaging Iberia", PaseURL:"https://drive.google.com/", Token:"LAURA2027"}
+  ],
+  recursos: [
+    {FeriaID:"GENERAL", Titulo:"Manual de marca ULMA Packaging", URL:"https://drive.google.com/", Tipo:"Brand kit"},
+    {FeriaID:"GENERAL", Titulo:"Checklist pre-feria para comerciales", URL:"https://drive.google.com/", Tipo:"Checklist"},
+    {FeriaID:"interpack2027", Titulo:"Argumentario Interpack 2027", URL:"https://drive.google.com/", Tipo:"Argumentario"}
+  ]
+};
+
+/* ---------- ESTADO ---------- */
+let DATA = {ferias:[], equipos:[], equipoComercial:[], recursos:[]};
+let state = {feriaId:null, tab:"info", showPast:false};
+const TOKEN_PARAM = new URLSearchParams(location.search).get('p');
+let tokenChecked = false; // para saber si el token no existe y avisar
+
+/* ---------- CARGA DE DATOS ---------- */
+function parseCSV(url){
+  return new Promise((resolve) => {
+    Papa.parse(url, {
+      download:true, header:true, skipEmptyLines:true,
+      transformHeader: h => h.trim(),
+      transform: v => (typeof v === 'string' ? v.trim() : v),
+      complete: (res) => resolve(res.data),
+      error: () => resolve([])
+    });
+  });
+}
+
+/* Acepta fechas en formato ISO (2026-10-06) o español (6/10/2026, 06/10/2026)
+   y siempre devuelve ISO para poder comparar/ordenar correctamente. */
+function normalizeDate(str){
+  if(!str) return "";
+  str = str.trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m){
+    const [_, d, mo, y] = m;
+    return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  return str;
+}
+
+async function loadData(){
+  if(IS_DEMO){
+    DATA = DEMO;
+  } else {
+    const [ferias, equipos, equipoComercial, recursos] = await Promise.all([
+      parseCSV(CONFIG.csvFerias),
+      parseCSV(CONFIG.csvEquipos),
+      parseCSV(CONFIG.csvEquipoComercial),
+      parseCSV(CONFIG.csvRecursos)
+    ]);
+    DATA = {ferias, equipos, equipoComercial, recursos};
+  }
+
+  // Si la URL trae un enlace personal (?p=TOKEN), abrimos directamente
+  // en la feria y pestaña de ese pase.
+  if(TOKEN_PARAM){
+    const match = DATA.equipoComercial.find(p => (p.Token || "").trim() === TOKEN_PARAM.trim());
+    tokenChecked = true;
+    if(match){
+      state.feriaId = match.FeriaID;
+      state.tab = "pase";
+    }
+  }
+
+  if(!state.feriaId && DATA.ferias.length) state.feriaId = pickDefaultFeria(DATA.ferias).FeriaID;
+  render();
+}
+
+function getPersonalMatch(feriaId){
+  if(!TOKEN_PARAM) return null;
+  return DATA.equipoComercial.find(p => (p.Token || "").trim() === TOKEN_PARAM.trim() && p.FeriaID === feriaId) || null;
+}
+
+function pickDefaultFeria(ferias){
+  const today = new Date().toISOString().slice(0,10);
+  const upcoming = ferias.filter(f => normalizeDate(f.FechaFin) >= today)
+    .sort((a,b)=>normalizeDate(a.FechaInicio).localeCompare(normalizeDate(b.FechaInicio)));
+  return upcoming[0] || ferias[ferias.length-1];
+}
+
+function feriaStatus(f){
+  const today = new Date().toISOString().slice(0,10);
+  const inicio = normalizeDate(f.FechaInicio);
+  const fin = normalizeDate(f.FechaFin);
+  if(today < inicio) return "upcoming";
+  if(today > fin) return "past";
+  return "live";
+}
+
+/* ---------- RENDER ---------- */
+function render(){
+  const app = document.getElementById('app');
+  if(!DATA.ferias.length){
+    app.innerHTML = `<div style="padding:60px;font-family:Inter,sans-serif;color:#6B6B6B;">
+      No se han encontrado ferias. Revisa que las URLs CSV en la configuración sean correctas y que las
+      pestañas estén publicadas en la web.</div>`;
+    return;
+  }
+  if(!state.feriaId) state.feriaId = pickDefaultFeria(DATA.ferias).FeriaID;
+
+  const sorted = [...DATA.ferias].sort((a,b)=>normalizeDate(a.FechaInicio).localeCompare(normalizeDate(b.FechaInicio)));
+  const upcoming = sorted.filter(f => feriaStatus(f) !== "past");
+  const past = sorted.filter(f => feriaStatus(f) === "past").reverse();
+  const feria = DATA.ferias.find(f => f.FeriaID === state.feriaId) || DATA.ferias[0];
+  const personalMatch = getPersonalMatch(feria.FeriaID);
+  const tokenInvalid = TOKEN_PARAM && tokenChecked && !DATA.equipoComercial.some(p => (p.Token || "").trim() === TOKEN_PARAM.trim());
+
+  app.innerHTML = `
+    ${IS_DEMO ? `<div class="demo-banner" style="position:sticky;top:0;z-index:20;">Estás viendo datos de ejemplo. Conecta tu Google Sheet en la configuración del archivo para ver tus ferias reales.</div>` : ""}
+    ${tokenInvalid ? `<div class="demo-banner" style="background:#FDEAEA;border-color:#F0B8B8;color:#8A1F1F;">No hemos podido verificar tu enlace personal. Contacta con marketing para que te lo revisen.</div>` : ""}
+    <div style="display:flex;">
+      <nav class="rail">
+        <div class="rail-header">
+          <div class="brand">ULMA PACKAGING</div>
+          <div class="title">Centro de<br>Ferias</div>
+        </div>
+        <div class="rail-section-label">Próximas / en curso</div>
+        ${upcoming.map(f => railItem(f)).join("")}
+        <button class="past-toggle" onclick="togglePast()">${state.showPast ? "Ocultar ferias pasadas ▲" : `Ver ferias pasadas (${past.length}) ▼`}</button>
+        ${state.showPast ? past.map(f => railItem(f)).join("") : ""}
+      </nav>
+      <main class="main">
+        ${hero(feria)}
+        ${tabsBar(personalMatch)}
+        ${tabContent(feria, personalMatch)}
+      </main>
+    </div>
+  `;
+}
+
+function railItem(f){
+  const status = feriaStatus(f);
+  const statusLabel = status === "live" ? "En curso" : status === "upcoming" ? "Próxima" : "Finalizada";
+  const chipClass = status === "live" ? "status-live" : "status-upcoming";
+  const active = f.FeriaID === state.feriaId ? "active" : "";
+  return `
+    <button class="fair-item ${active}" onclick="selectFeria('${f.FeriaID}')">
+      <div class="fname">${f.Nombre}</div>
+      <div class="fmeta">${f.Ubicacion} · ${f.FechasTexto}</div>
+      <span class="status-chip ${chipClass}">${statusLabel}</span>
+    </button>
+  `;
+}
+
+function hero(f){
+  return `
+    <div class="hero">
+      ${f.ImagenURL ? `<img class="hero-img" src="${f.ImagenURL}" alt="${f.Nombre}">` : ""}
+      <h1>${f.Nombre}</h1>
+      <div class="subline">
+        <span><b>${f.FechasTexto}</b></span>
+        <span>${f.Ubicacion}</span>
+      </div>
+      <span class="stand-badge">${f.Pabellon || ""} ${f.Stand ? "· Stand " + f.Stand : ""}</span>
+    </div>
+  `;
+}
+
+function tabsBar(personalMatch){
+  const tabs = [["info","Información"],["equipos","Equipos"]];
+  if(personalMatch) tabs.push(["pase","Mi pase"]);
+  tabs.push(["recursos","Recursos"]);
+  if(state.tab === "pase" && !personalMatch) state.tab = "info";
+  return `<div class="tabs">
+    ${tabs.map(([id,label]) => `<button class="tab-btn ${state.tab===id?'active':''}" onclick="selectTab('${id}')">${label}</button>`).join("")}
+  </div>`;
+}
+
+function tabContent(f, personalMatch){
+  if(state.tab === "info") return infoTab(f);
+  if(state.tab === "equipos") return equiposTab(f);
+  if(state.tab === "pase") return paseTab(personalMatch);
+  if(state.tab === "recursos") return recursosTab(f);
+}
+
+function infoTab(f){
+  return `
+    <div class="panel">
+      <div class="info-block full" style="margin-bottom:8px;">
+        <div class="label">Sobre esta feria</div>
+        <div class="desc-text">${f.Descripcion || "—"}</div>
+      </div>
+      <div class="info-grid" style="margin-top:26px;">
+        <div class="info-block"><div class="label">Hotel</div><div class="value">${f.Hotel || "—"}</div></div>
+        <div class="info-block"><div class="label">Contacto en el stand</div><div class="value">${f.ContactoNombre || "—"}${f.ContactoTelefono ? " · " + f.ContactoTelefono : ""}</div></div>
+        <div class="info-block"><div class="label">Web oficial</div><div class="value">${f.WebOficial ? `<a href="${f.WebOficial}" target="_blank" style="color:var(--red);">${f.WebOficial}</a>` : "—"}</div></div>
+      </div>
+    </div>
+  `;
+}
+
+function equiposTab(f){
+  const items = DATA.equipos.filter(e => e.FeriaID === f.FeriaID);
+  currentEquipList = items;
+  if(!items.length) return `<div class="panel"><div class="empty-state">Aún no hay equipos cargados para esta feria.</div></div>`;
+  return `
+    <div class="panel">
+      <div class="equip-grid">
+        ${items.map((e, idx) => `
+          <div class="equip-card" onclick="openEquipModal(${idx})">
+            ${e.ImagenURL ? `<img src="${e.ImagenURL}" alt="${e.NombreEquipo}">` : ""}
+            <div class="body">
+              <h3>${e.NombreEquipo}</h3>
+              <p class="clamp-2">${e.Descripcion || ""}</p>
+              <button class="btn-more" onclick="event.stopPropagation(); openEquipModal(${idx})">Más información</button>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function paseTab(personalMatch){
+  if(!personalMatch){
+    return `<div class="panel"><div class="empty-state">Este apartado solo aparece si entras con tu enlace personal de pase.</div></div>`;
+  }
+  return `
+    <div class="panel">
+      <div class="pass-search">
+        <div class="info-block"><div class="label">Tu pase de expositor</div></div>
+        <div class="pass-result">
+          <div class="who">${personalMatch.Nombre}<span>${personalMatch.Filial || ""}</span></div>
+          <a class="btn-red" href="${personalMatch.PaseURL}" target="_blank">Descargar pase</a>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function recursosTab(f){
+  const items = DATA.recursos.filter(r => r.FeriaID === "GENERAL" || r.FeriaID === f.FeriaID);
+  if(!items.length) return `<div class="panel"><div class="empty-state">No hay recursos disponibles todavía.</div></div>`;
+
+  // Agrupamos por el campo "Tipo" (ej. Vídeos, Planos, Documentos...).
+  // Los que no tengan Tipo caen en "Otros recursos".
+  const groups = {};
+  items.forEach(r => {
+    const key = (r.Tipo || "Otros recursos").trim();
+    if(!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+
+  return `
+    <div class="panel">
+      ${Object.keys(groups).map(groupName => `
+        <div class="res-group">
+          <div class="res-group-title">${groupName}</div>
+          <div class="res-list">
+            ${groups[groupName].map(r => `
+              <div class="res-row">
+                <div class="rtitle">${r.Titulo}</div>
+                <a href="${r.URL}" target="_blank">Abrir ↓</a>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+/* ---------- MODAL DE EQUIPO ---------- */
+let currentEquipList = [];
+let modalEquipIndex = null;
+
+function openEquipModal(idx){ modalEquipIndex = idx; renderModal(); }
+function closeEquipModal(){ modalEquipIndex = null; renderModal(); }
+
+function renderModal(){
+  let el = document.getElementById('modal-root');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'modal-root';
+    document.body.appendChild(el);
+  }
+  if(modalEquipIndex === null || !currentEquipList[modalEquipIndex]){
+    el.innerHTML = "";
+    return;
+  }
+  const e = currentEquipList[modalEquipIndex];
+  el.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeEquipModal()">
+      <div class="modal-box">
+        <button class="modal-close" onclick="closeEquipModal()">×</button>
+        ${e.ImagenURL ? `<img src="${e.ImagenURL}" alt="${e.NombreEquipo}">` : ""}
+        <div class="body">
+          <h3>${e.NombreEquipo}</h3>
+          <p>${e.Descripcion || ""}</p>
+          ${e.Argumentario ? `<ul>${e.Argumentario.split("|").map(a => `<li>${a.trim()}</li>`).join("")}</ul>` : ""}
+          ${e.FichaTecnicaURL ? `<a href="${e.FichaTecnicaURL}" target="_blank" class="btn-red">Ficha técnica ↓</a>` : ""}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- INTERACCIÓN ---------- */
+function selectFeria(id){ state.feriaId = id; state.tab = "info"; render(); }
+function selectTab(id){ state.tab = id; render(); }
+function togglePast(){ state.showPast = !state.showPast; render(); }
+
+loadData();
+</script>
+</body>
+</html>
