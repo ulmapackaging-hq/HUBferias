@@ -19,18 +19,19 @@
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;background:var(--white);color:var(--charcoal);
     font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    -webkit-font-smoothing:antialiased; overflow-x:hidden; max-width:100vw;}
+    -webkit-font-smoothing:antialiased;}
   h1,h2,h3,.display{font-family:'Barlow Condensed',Impact,'Arial Narrow',sans-serif;
     font-weight:700; letter-spacing:0.2px; margin:0;}
   a{color:inherit;}
   button{font-family:inherit;}
 
-  #app{display:flex; min-height:100vh;}
+  #app{min-height:100vh;}
 
   /* ---------- RAIL ---------- */
   .rail{
-    width:var(--rail-w); flex:0 0 var(--rail-w); background:var(--charcoal); color:var(--white);
-    display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto;
+    width:var(--rail-w); background:var(--charcoal); color:var(--white);
+    display:flex; flex-direction:column; position:fixed; top:0; left:0; height:100vh; overflow-y:auto;
+    z-index:10;
   }
   .rail-header{padding:28px 24px 18px; border-bottom:1px solid rgba(255,255,255,0.12);}
   .rail-header .brand{font-size:13px; letter-spacing:0.5px; color:#C9C7C5; margin-bottom:4px;}
@@ -62,7 +63,7 @@
     text-align:left; border-top:1px solid rgba(255,255,255,0.12); margin-top:auto;}
 
   /* ---------- MAIN ---------- */
-  .main{flex:1; min-width:0; padding:0 0 60px;}
+  .main{margin-left:var(--rail-w); min-width:0; padding:0 0 60px;}
   .hero{padding:44px 48px 28px; border-bottom:1px solid var(--gray-line); max-width:920px; min-width:0;}
   .hero-img{width:100%; aspect-ratio:3.6/1; object-fit:cover; display:block; margin-bottom:24px; background:var(--offwhite);}
   .hero .stand-badge{display:inline-block; background:var(--offwhite); border:1px solid var(--gray-line);
@@ -145,9 +146,9 @@
   /* ---------- MOBILE ---------- */
   .rail-toggle{display:none;}
   @media (max-width:880px){
-    #app{flex-direction:column;}
-    .rail{position:relative; width:100%; height:auto; flex-direction:row; flex-wrap:nowrap;
+    .rail{position:relative; width:100%; height:auto; top:auto; left:auto; flex-direction:row; flex-wrap:nowrap;
       overflow-x:auto; overflow-y:visible; align-items:center;}
+    .main{margin-left:0;}
     .rail-header{border-bottom:none; border-right:1px solid rgba(255,255,255,0.12); flex:0 0 auto; padding:18px 20px;}
     .rail-header .title{font-size:22px;}
     .rail-section-label{display:none;}
@@ -339,32 +340,30 @@ function render(){
   app.innerHTML = `
     ${IS_DEMO ? `<div class="demo-banner" style="position:sticky;top:0;z-index:20;">Estás viendo datos de ejemplo. Conecta tu Google Sheet en la configuración del archivo para ver tus ferias reales.</div>` : ""}
     ${tokenInvalid ? `<div class="demo-banner" style="background:#FDEAEA;border-color:#F0B8B8;color:#8A1F1F;">No hemos podido verificar tu enlace personal. Contacta con marketing para que te lo revisen.</div>` : ""}
-    <div style="display:flex;">
-      <nav class="rail">
-        <div class="rail-header">
-          <div class="brand">ULMA PACKAGING</div>
-          <div class="title">Centro de<br>Ferias</div>
-        </div>
-        <div class="rail-search">
-          <input id="rail-search" type="text" placeholder="Buscar feria..." value="${state.railQuery || ""}" oninput="filterFerias(this.value)">
-        </div>
-        <div class="rail-year-filter">
-          <select onchange="filterYear(this.value)">
-            <option value="">Todos los años</option>
-            ${allYears.map(y => `<option value="${y}" ${state.yearFilter===y ? "selected" : ""}>${y}</option>`).join("")}
-          </select>
-        </div>
-        <div class="rail-section-label">Próximas / en curso</div>
-        ${upcoming.length ? renderFeriasByYear(upcoming) : `<div class="rail-empty">Sin resultados</div>`}
-        <button class="past-toggle" onclick="togglePast()">${state.showPast ? "Ocultar ferias pasadas ▲" : `Ver ferias pasadas (${past.length}) ▼`}</button>
-        ${state.showPast ? renderFeriasByYear(past) : ""}
-      </nav>
-      <main class="main">
-        ${hero(feria)}
-        ${tabsBar(personalMatch)}
-        ${tabContent(feria, personalMatch)}
-      </main>
-    </div>
+    <nav class="rail">
+      <div class="rail-header">
+        <div class="brand">ULMA PACKAGING</div>
+        <div class="title">Centro de<br>Ferias</div>
+      </div>
+      <div class="rail-search">
+        <input id="rail-search" type="text" placeholder="Buscar feria..." value="${state.railQuery || ""}" oninput="filterFerias(this.value)">
+      </div>
+      <div class="rail-year-filter">
+        <select onchange="filterYear(this.value)">
+          <option value="">Todos los años</option>
+          ${allYears.map(y => `<option value="${y}" ${state.yearFilter===y ? "selected" : ""}>${y}</option>`).join("")}
+        </select>
+      </div>
+      <div class="rail-section-label">Próximas / en curso</div>
+      ${upcoming.length ? renderFeriasByYear(upcoming) : `<div class="rail-empty">Sin resultados</div>`}
+      <button class="past-toggle" onclick="togglePast()">${state.showPast ? "Ocultar ferias pasadas ▲" : `Ver ferias pasadas (${past.length}) ▼`}</button>
+      ${state.showPast ? renderFeriasByYear(past) : ""}
+    </nav>
+    <main class="main">
+      ${hero(feria)}
+      ${tabsBar(personalMatch)}
+      ${tabContent(feria, personalMatch)}
+    </main>
   `;
 
   if(hadFocus){
@@ -599,3 +598,4 @@ loadData();
 </script>
 </body>
 </html>
+
