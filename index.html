@@ -45,6 +45,12 @@
   .rail-year-filter select{width:100%; padding:8px 10px; font-size:13.5px; border:1px solid rgba(255,255,255,0.22);
     background:rgba(255,255,255,0.07); color:var(--white); border-radius:2px;}
   .rail-year-filter select option{background:var(--charcoal); color:var(--white);}
+  .search-toggle-btn{display:flex; align-items:center; gap:9px; width:100%; text-align:left; background:none;
+    border:none; color:var(--white); font-size:14px; font-weight:600; padding:16px 24px 12px; cursor:pointer;}
+  .search-toggle-btn:hover{background:rgba(255,255,255,0.06);}
+  .search-toggle-btn.has-filter{color:var(--red);}
+  .search-toggle-btn.has-filter svg{stroke:var(--red);}
+  .rail-search-panel{padding-bottom:8px;}
   .rail-year-label{padding:16px 24px 4px; font-size:11.5px; color:#9A9896; font-weight:700; letter-spacing:0.5px;}
   .rail-empty{padding:10px 24px 4px; font-size:13px; color:#9A9896;}
   .fair-item{
@@ -154,6 +160,7 @@
     .rail-section-label{display:none;}
     .rail-search{display:none;}
     .rail-year-filter{display:none;}
+    .search-toggle-btn{display:none;}
     .fair-item{flex:0 0 auto; white-space:nowrap; border-left:none; border-bottom:3px solid transparent; padding:16px 18px;}
     .fair-item.active{border-left:none; border-bottom-color:var(--red);}
     .past-toggle{margin-top:0; border-top:none; border-left:1px solid rgba(255,255,255,0.12); flex:0 0 auto;}
@@ -225,7 +232,7 @@ const DEMO = {
 
 /* ---------- ESTADO ---------- */
 let DATA = {ferias:[], equipos:[], equipoComercial:[], recursos:[]};
-let state = {feriaId:null, tab:"info", showPast:false, railQuery:"", yearFilter:""};
+let state = {feriaId:null, tab:"info", showPast:false, railQuery:"", yearFilter:"", searchOpen:false};
 const TOKEN_PARAM = new URLSearchParams(location.search).get('p');
 let tokenChecked = false; // para saber si el token no existe y avisar
 
@@ -345,15 +352,23 @@ function render(){
         <div class="brand">ULMA PACKAGING</div>
         <div class="title">Centro de<br>Ferias</div>
       </div>
-      <div class="rail-search">
-        <input id="rail-search" type="text" placeholder="Buscar feria..." value="${state.railQuery || ""}" oninput="filterFerias(this.value)">
-      </div>
-      <div class="rail-year-filter">
-        <select onchange="filterYear(this.value)">
-          <option value="">Todos los años</option>
-          ${allYears.map(y => `<option value="${y}" ${state.yearFilter===y ? "selected" : ""}>${y}</option>`).join("")}
-        </select>
-      </div>
+      <button class="search-toggle-btn ${(state.railQuery || state.yearFilter) ? 'has-filter' : ''}" onclick="toggleSearchPanel()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        Buscar feria
+      </button>
+      ${state.searchOpen ? `
+        <div class="rail-search-panel">
+          <div class="rail-search">
+            <input id="rail-search" type="text" placeholder="Buscar por nombre..." value="${state.railQuery || ""}" oninput="filterFerias(this.value)">
+          </div>
+          <div class="rail-year-filter">
+            <select onchange="filterYear(this.value)">
+              <option value="">Todos los años</option>
+              ${allYears.map(y => `<option value="${y}" ${state.yearFilter===y ? "selected" : ""}>${y}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+      ` : ""}
       <div class="rail-section-label">Próximas / en curso</div>
       ${upcoming.length ? renderFeriasByYear(upcoming) : `<div class="rail-empty">Sin resultados</div>`}
       <button class="past-toggle" onclick="togglePast()">${state.showPast ? "Ocultar ferias pasadas ▲" : `Ver ferias pasadas (${past.length}) ▼`}</button>
@@ -383,6 +398,16 @@ function filterFerias(value){
 function filterYear(value){
   state.yearFilter = value;
   render();
+}
+
+function toggleSearchPanel(){
+  state.searchOpen = !state.searchOpen;
+  render();
+  // Si se acaba de abrir, centramos el foco directamente en el campo de texto.
+  if(state.searchOpen){
+    const el = document.getElementById('rail-search');
+    if(el) el.focus();
+  }
 }
 
 // Pinta la lista de ferias agrupada visualmente por año (cuando no hay un
