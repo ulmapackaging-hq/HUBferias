@@ -101,13 +101,14 @@
   .info-block.full{grid-column:1 / -1;}
   .desc-text{font-size:16px; line-height:1.65; color:var(--charcoal); max-width:70ch;}
 
-  .equip-grid{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px;}
-  .equip-card{border:1px solid var(--gray-line); background:var(--white); overflow:hidden; cursor:pointer; transition:box-shadow 0.15s, transform 0.15s; min-width:0;}
+  .equip-grid{display:grid; gap:22px;}
+  .equip-card{border:1px solid var(--gray-line); background:var(--white); overflow:hidden; cursor:pointer;
+    transition:box-shadow 0.15s, transform 0.15s; min-width:0; display:flex; flex-direction:row; aspect-ratio:2.2/1;}
   .equip-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.08); transform:translateY(-2px);}
-  .equip-card img{width:100%; height:160px; object-fit:cover; display:block; background:var(--offwhite);}
-  .equip-card .body{padding:16px 18px 18px;}
-  .equip-card h3{font-size:22px; margin-bottom:6px;}
-  .equip-card p{font-size:14.5px; color:var(--gray); line-height:1.55; margin:0 0 14px;}
+  .equip-card img{width:38%; flex:0 0 38%; height:100%; object-fit:cover; display:block; background:var(--offwhite);}
+  .equip-card .body{flex:1; min-width:0; padding:14px 18px; display:flex; flex-direction:column; justify-content:center; gap:6px;}
+  .equip-card h3{font-size:19px; margin:0;}
+  .equip-card p{font-size:13.5px; color:var(--gray); line-height:1.45; margin:0;}
   .equip-card p.clamp-2{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
   .btn-more{background:none; border:none; padding:0; font-size:13.5px; font-weight:600; color:var(--red);
     cursor:pointer; text-decoration:none; border-bottom:1px solid var(--red);}
@@ -183,7 +184,7 @@
     .mobile-topbar-logo{height:20px; width:auto; display:block;}
     .hamburger-btn{background:none; border:none; color:var(--white); padding:6px; cursor:pointer; flex:0 0 auto;
       display:flex; align-items:center;}
-    .rail-backdrop{position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:21;}
+    .rail-backdrop{display:block; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:21;}
     .rail{position:fixed; top:0; left:-85%; width:85%; max-width:320px; height:100vh; z-index:22;
       transition:left 0.25s ease;}
     .rail.rail-open{left:0;}
@@ -541,9 +542,10 @@ function equiposTab(f){
   const items = DATA.equipos.filter(e => e.FeriaID === f.FeriaID);
   currentEquipList = items;
   if(!items.length) return `<div class="panel"><div class="empty-state">Aún no hay equipos cargados para esta feria.</div></div>`;
+  const cols = items.length === 1 ? 1 : Math.min(3, items.length);
   return `
     <div class="panel">
-      <div class="equip-grid">
+      <div class="equip-grid" style="grid-template-columns:repeat(${cols}, minmax(0,1fr));">
         ${items.map((e, idx) => `
           <div class="equip-card" onclick="openEquipModal(${idx})">
             ${e.ImagenURL ? `<img src="${e.ImagenURL}" alt="${e.NombreEquipo}">` : ""}
