@@ -88,14 +88,22 @@
   /* ---------- MODAL ---------- */
   .modal-overlay{position:fixed; inset:0; background:rgba(34,34,34,0.55); display:flex; align-items:center;
     justify-content:center; z-index:100; padding:24px;}
-  .modal-box{background:var(--white); max-width:640px; width:100%; max-height:86vh; overflow-y:auto; position:relative;}
-  .modal-box img{width:100%; max-height:320px; object-fit:cover; display:block; background:var(--offwhite);}
-  .modal-box .body{padding:28px 32px 32px;}
-  .modal-box h3{font-size:30px; margin-bottom:10px;}
-  .modal-box p{font-size:15.5px; color:var(--gray); line-height:1.6; margin:0 0 14px;}
-  .modal-box ul{margin:0 0 16px; padding-left:20px; font-size:15px; line-height:1.7;}
+  .modal-box{background:var(--white); max-width:640px; width:100%; max-height:86vh; position:relative;
+    display:flex; flex-direction:column; overflow:hidden;}
+  .modal-img-wrap{flex:0 0 auto; width:100%; max-height:300px; background:var(--offwhite);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;}
+  .modal-img-wrap img{max-width:100%; max-height:300px; object-fit:contain; display:block;}
+  .modal-head{flex:0 0 auto; padding:24px 32px 0;}
+  .modal-head h3{font-size:30px;}
+  .modal-tabs{flex:0 0 auto; display:flex; gap:2px; padding:14px 32px 0; border-bottom:1px solid var(--gray-line);}
+  .modal-tab-btn{padding:10px 4px; margin-right:20px; background:none; border:none; font-size:14px; color:var(--gray);
+    cursor:pointer; border-bottom:3px solid transparent; font-weight:600;}
+  .modal-tab-btn.active{color:var(--charcoal); border-bottom-color:var(--red);}
+  .modal-scroll{flex:1 1 auto; overflow-y:auto; padding:20px 32px 32px;}
+  .modal-scroll p{font-size:15.5px; color:var(--gray); line-height:1.6; margin:0;}
+  .modal-scroll ul{margin:0; padding-left:20px; font-size:15px; line-height:1.7;}
   .modal-close{position:absolute; top:14px; right:14px; width:34px; height:34px; border-radius:50%; border:none;
-    background:rgba(255,255,255,0.9); font-size:20px; cursor:pointer; line-height:1;}
+    background:rgba(255,255,255,0.9); font-size:20px; cursor:pointer; line-height:1; z-index:2;}
 
   /* ---------- RECURSOS agrupados ---------- */
   .res-group{margin-bottom:32px;}
@@ -460,9 +468,11 @@ function recursosTab(f){
 /* ---------- MODAL DE EQUIPO ---------- */
 let currentEquipList = [];
 let modalEquipIndex = null;
+let modalTab = "descripcion";
 
-function openEquipModal(idx){ modalEquipIndex = idx; renderModal(); }
+function openEquipModal(idx){ modalEquipIndex = idx; modalTab = "descripcion"; renderModal(); }
 function closeEquipModal(){ modalEquipIndex = null; renderModal(); }
+function setModalTab(tab){ modalTab = tab; renderModal(); }
 
 function renderModal(){
   let el = document.getElementById('modal-root');
@@ -476,17 +486,36 @@ function renderModal(){
     return;
   }
   const e = currentEquipList[modalEquipIndex];
+
+  const tabs = [
+    ["descripcion", "Descripción"],
+    ["argumentario", "Argumentario de venta"],
+    ["ficha", "Ficha técnica"]
+  ];
+
+  let body = "";
+  if(modalTab === "descripcion"){
+    body = `<p>${e.Descripcion || "Sin descripción disponible."}</p>`;
+  } else if(modalTab === "argumentario"){
+    body = e.Argumentario
+      ? `<ul>${e.Argumentario.split("|").map(a => `<li>${a.trim()}</li>`).join("")}</ul>`
+      : `<p>Sin argumentario de venta cargado todavía.</p>`;
+  } else if(modalTab === "ficha"){
+    body = e.FichaTecnicaURL
+      ? `<a class="btn-red" href="${e.FichaTecnicaURL}" target="_blank">Abrir ficha técnica ↓</a>`
+      : `<p>Sin ficha técnica disponible todavía.</p>`;
+  }
+
   el.innerHTML = `
     <div class="modal-overlay" onclick="if(event.target===this) closeEquipModal()">
       <div class="modal-box">
         <button class="modal-close" onclick="closeEquipModal()">×</button>
-        ${e.ImagenURL ? `<img src="${e.ImagenURL}" alt="${e.NombreEquipo}">` : ""}
-        <div class="body">
-          <h3>${e.NombreEquipo}</h3>
-          <p>${e.Descripcion || ""}</p>
-          ${e.Argumentario ? `<ul>${e.Argumentario.split("|").map(a => `<li>${a.trim()}</li>`).join("")}</ul>` : ""}
-          ${e.FichaTecnicaURL ? `<a href="${e.FichaTecnicaURL}" target="_blank" class="btn-red">Ficha técnica ↓</a>` : ""}
+        ${e.ImagenURL ? `<div class="modal-img-wrap"><img src="${e.ImagenURL}" alt="${e.NombreEquipo}"></div>` : ""}
+        <div class="modal-head"><h3>${e.NombreEquipo}</h3></div>
+        <div class="modal-tabs">
+          ${tabs.map(([id,label]) => `<button class="modal-tab-btn ${modalTab===id?'active':''}" onclick="setModalTab('${id}')">${label}</button>`).join("")}
         </div>
+        <div class="modal-scroll">${body}</div>
       </div>
     </div>
   `;
@@ -501,4 +530,3 @@ loadData();
 </script>
 </body>
 </html>
-
