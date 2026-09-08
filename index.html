@@ -40,6 +40,11 @@
   .rail-search input{width:100%; padding:9px 11px; font-size:13.5px; border:1px solid rgba(255,255,255,0.22);
     background:rgba(255,255,255,0.07); color:var(--white); border-radius:2px;}
   .rail-search input::placeholder{color:#9A9896;}
+  .rail-year-filter{padding:10px 24px 0;}
+  .rail-year-filter select{width:100%; padding:8px 10px; font-size:13.5px; border:1px solid rgba(255,255,255,0.22);
+    background:rgba(255,255,255,0.07); color:var(--white); border-radius:2px;}
+  .rail-year-filter select option{background:var(--charcoal); color:var(--white);}
+  .rail-year-label{padding:16px 24px 4px; font-size:11.5px; color:#9A9896; font-weight:700; letter-spacing:0.5px;}
   .rail-empty{padding:10px 24px 4px; font-size:13px; color:#9A9896;}
   .fair-item{
     display:block; width:100%; text-align:left; background:none; border:none; color:var(--white);
@@ -147,6 +152,7 @@
     .rail-header .title{font-size:22px;}
     .rail-section-label{display:none;}
     .rail-search{display:none;}
+    .rail-year-filter{display:none;}
     .fair-item{flex:0 0 auto; white-space:nowrap; border-left:none; border-bottom:3px solid transparent; padding:16px 18px;}
     .fair-item.active{border-left:none; border-bottom-color:var(--red);}
     .past-toggle{margin-top:0; border-top:none; border-left:1px solid rgba(255,255,255,0.12); flex:0 0 auto;}
@@ -218,7 +224,7 @@ const DEMO = {
 
 /* ---------- ESTADO ---------- */
 let DATA = {ferias:[], equipos:[], equipoComercial:[], recursos:[]};
-let state = {feriaId:null, tab:"info", showPast:false, railQuery:""};
+let state = {feriaId:null, tab:"info", showPast:false, railQuery:"", yearFilter:""};
 const TOKEN_PARAM = new URLSearchParams(location.search).get('p');
 let tokenChecked = false; // para saber si el token no existe y avisar
 
@@ -320,10 +326,12 @@ function render(){
   const matchesQuery = f => !query ||
     (f.Nombre || "").toLowerCase().includes(query) ||
     (f.Ubicacion || "").toLowerCase().includes(query);
+  const matchesYear = f => !state.yearFilter || normalizeDate(f.FechaInicio).slice(0,4) === state.yearFilter;
 
   const sorted = [...DATA.ferias].sort((a,b)=>normalizeDate(a.FechaInicio).localeCompare(normalizeDate(b.FechaInicio)));
-  const upcoming = sorted.filter(f => feriaStatus(f) !== "past" && matchesQuery(f));
-  const past = sorted.filter(f => feriaStatus(f) === "past" && matchesQuery(f)).reverse();
+  const upcoming = sorted.filter(f => feriaStatus(f) !== "past" && matchesQuery(f) && matchesYear(f));
+  const past = sorted.filter(f => feriaStatus(f) === "past" && matchesQuery(f) && matchesYear(f)).reverse();
+  const allYears = [...new Set(DATA.ferias.map(f => normalizeDate(f.FechaInicio).slice(0,4)).filter(Boolean))].sort();
   const feria = DATA.ferias.find(f => f.FeriaID === state.feriaId) || DATA.ferias[0];
   const personalMatch = getPersonalMatch(feria.FeriaID);
   const tokenInvalid = TOKEN_PARAM && tokenChecked && !DATA.equipoComercial.some(p => (p.Token || "").trim() === TOKEN_PARAM.trim());
@@ -340,10 +348,16 @@ function render(){
         <div class="rail-search">
           <input id="rail-search" type="text" placeholder="Buscar feria..." value="${state.railQuery || ""}" oninput="filterFerias(this.value)">
         </div>
+        <div class="rail-year-filter">
+          <select onchange="filterYear(this.value)">
+            <option value="">Todos los años</option>
+            ${allYears.map(y => `<option value="${y}" ${state.yearFilter===y ? "selected" : ""}>${y}</option>`).join("")}
+          </select>
+        </div>
         <div class="rail-section-label">Próximas / en curso</div>
-        ${upcoming.length ? upcoming.map(f => railItem(f)).join("") : `<div class="rail-empty">Sin resultados</div>`}
+        ${upcoming.length ? renderFeriasByYear(upcoming) : `<div class="rail-empty">Sin resultados</div>`}
         <button class="past-toggle" onclick="togglePast()">${state.showPast ? "Ocultar ferias pasadas ▲" : `Ver ferias pasadas (${past.length}) ▼`}</button>
-        ${state.showPast ? past.map(f => railItem(f)).join("") : ""}
+        ${state.showPast ? renderFeriasByYear(past) : ""}
       </nav>
       <main class="main">
         ${hero(feria)}
@@ -365,6 +379,27 @@ function render(){
 function filterFerias(value){
   state.railQuery = value;
   render();
+}
+
+function filterYear(value){
+  state.yearFilter = value;
+  render();
+}
+
+// Pinta la lista de ferias agrupada visualmente por año (cuando no hay un
+// año concreto seleccionado en el filtro, para facilitar la navegación).
+function renderFeriasByYear(list){
+  let html = "";
+  let lastYear = null;
+  list.forEach(f => {
+    const year = normalizeDate(f.FechaInicio).slice(0,4) || "—";
+    if(year !== lastYear){
+      html += `<div class="rail-year-label">${year}</div>`;
+      lastYear = year;
+    }
+    html += railItem(f);
+  });
+  return html;
 }
 
 function railItem(f){
@@ -415,14 +450,14 @@ function tabContent(f, personalMatch){
 function infoTab(f){
   return `
     <div class="panel">
-      <div class="info-block full" style="margin-bottom:8px;">
-        <div class="label">Sobre esta feria</div>
-        <div class="desc-text">${f.Descripcion || "—"}</div>
-      </div>
-      <div class="info-grid" style="margin-top:26px;">
+      <div class="info-grid">
         <div class="info-block"><div class="label">Hotel</div><div class="value">${f.Hotel || "—"}</div></div>
         <div class="info-block"><div class="label">Contacto en el stand</div><div class="value">${f.ContactoNombre || "—"}${f.ContactoTelefono ? " · " + f.ContactoTelefono : ""}</div></div>
         <div class="info-block"><div class="label">Web oficial</div><div class="value">${f.WebOficial ? `<a href="${f.WebOficial}" target="_blank" style="color:var(--red);">${f.WebOficial}</a>` : "—"}</div></div>
+      </div>
+      <div class="info-block full" style="margin-top:26px;">
+        <div class="label">Sobre esta feria</div>
+        <div class="desc-text">${f.Descripcion || "—"}</div>
       </div>
     </div>
   `;
