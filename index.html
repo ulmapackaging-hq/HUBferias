@@ -199,6 +199,16 @@
     .landing-hero h1{font-size:34px;}
     .landing-grid{grid-template-columns:1fr;}
   }
+
+  /* Pantallas muy estrechas: 1 sola columna y la tarjeta pasa de horizontal
+     a apilada (imagen arriba, texto abajo) para que se lea con comodidad. */
+  @media (max-width:560px){
+    .equip-grid{grid-template-columns:1fr !important;}
+    .equip-card{flex-direction:column; aspect-ratio:auto;}
+    .equip-card img{width:100%; height:180px; flex:0 0 auto;}
+    .equip-card .body{padding:16px 18px 18px; justify-content:flex-start;}
+    .equip-card h3{font-size:21px;}
+  }
 </style>
 </head>
 <body>
@@ -709,3 +719,4 @@ loadData();
 </script>
 </body>
 </html>
+
