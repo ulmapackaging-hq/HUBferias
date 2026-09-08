@@ -138,10 +138,10 @@
    de demostración para que puedas ver cómo se ve y se comporta.
 ============================================================ */
 const CONFIG = {
-  csvFerias:          "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmA0fU4aMgNZcyRwrMFWTM_j6AMNNwvTpBeQetF4cvIFkQcwnUoaPyfJDk07nH3A/pub?gid=540404602&single=true&output=csv",
-  csvEquipos:         "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmA0fU4aMgNZcyRwrMFWTM_j6AMNNwvTpBeQetF4cvIFkQcwnUoaPyfJDk07nH3A/pub?gid=634470948&single=true&output=csv",
-  csvEquipoComercial: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmA0fU4aMgNZcyRwrMFWTM_j6AMNNwvTpBeQetF4cvIFkQcwnUoaPyfJDk07nH3A/pub?gid=1411149452&single=true&output=csv",
-  csvRecursos:        "https://docs.google.com/spreadsheets/d/e/2PACX-1vTmA0fU4aMgNZcyRwrMFWTM_j6AMNNwvTpBeQetF4cvIFkQcwnUoaPyfJDk07nH3A/pub?gid=1606642252&single=true&output=csv"
+  csvFerias:          "PEGA_AQUI_TU_URL_CSV_FERIAS",
+  csvEquipos:         "PEGA_AQUI_TU_URL_CSV_EQUIPOS",
+  csvEquipoComercial: "PEGA_AQUI_TU_URL_CSV_EQUIPOCOMERCIAL",
+  csvRecursos:        "PEGA_AQUI_TU_URL_CSV_RECURSOS"
 };
 
 const IS_DEMO = Object.values(CONFIG).some(v => v.startsWith("PEGA_AQUI"));
@@ -194,10 +194,26 @@ function parseCSV(url){
   return new Promise((resolve) => {
     Papa.parse(url, {
       download:true, header:true, skipEmptyLines:true,
+      transformHeader: h => h.trim(),
+      transform: v => (typeof v === 'string' ? v.trim() : v),
       complete: (res) => resolve(res.data),
       error: () => resolve([])
     });
   });
+}
+
+/* Acepta fechas en formato ISO (2026-10-06) o español (6/10/2026, 06/10/2026)
+   y siempre devuelve ISO para poder comparar/ordenar correctamente. */
+function normalizeDate(str){
+  if(!str) return "";
+  str = str.trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m){
+    const [_, d, mo, y] = m;
+    return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  return str;
 }
 
 async function loadData(){
@@ -235,14 +251,17 @@ function getPersonalMatch(feriaId){
 
 function pickDefaultFeria(ferias){
   const today = new Date().toISOString().slice(0,10);
-  const upcoming = ferias.filter(f => f.FechaFin >= today).sort((a,b)=>a.FechaInicio.localeCompare(b.FechaInicio));
+  const upcoming = ferias.filter(f => normalizeDate(f.FechaFin) >= today)
+    .sort((a,b)=>normalizeDate(a.FechaInicio).localeCompare(normalizeDate(b.FechaInicio)));
   return upcoming[0] || ferias[ferias.length-1];
 }
 
 function feriaStatus(f){
   const today = new Date().toISOString().slice(0,10);
-  if(today < f.FechaInicio) return "upcoming";
-  if(today > f.FechaFin) return "past";
+  const inicio = normalizeDate(f.FechaInicio);
+  const fin = normalizeDate(f.FechaFin);
+  if(today < inicio) return "upcoming";
+  if(today > fin) return "past";
   return "live";
 }
 
@@ -257,7 +276,7 @@ function render(){
   }
   if(!state.feriaId) state.feriaId = pickDefaultFeria(DATA.ferias).FeriaID;
 
-  const sorted = [...DATA.ferias].sort((a,b)=>a.FechaInicio.localeCompare(b.FechaInicio));
+  const sorted = [...DATA.ferias].sort((a,b)=>normalizeDate(a.FechaInicio).localeCompare(normalizeDate(b.FechaInicio)));
   const upcoming = sorted.filter(f => feriaStatus(f) !== "past");
   const past = sorted.filter(f => feriaStatus(f) === "past").reverse();
   const feria = DATA.ferias.find(f => f.FeriaID === state.feriaId) || DATA.ferias[0];
@@ -418,3 +437,4 @@ loadData();
 </script>
 </body>
 </html>
+
