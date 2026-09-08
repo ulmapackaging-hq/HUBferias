@@ -54,8 +54,9 @@
   /* ---------- MAIN ---------- */
   .main{flex:1; min-width:0; padding:0 0 60px;}
   .hero{padding:44px 48px 28px; border-bottom:1px solid var(--gray-line);}
+  .hero-img{width:100%; max-height:280px; object-fit:cover; display:block; margin-bottom:24px; background:var(--offwhite);}
   .hero .stand-badge{display:inline-block; background:var(--offwhite); border:1px solid var(--gray-line);
-    padding:4px 10px; font-size:13px; color:var(--gray); margin-bottom:14px; font-variant-numeric:tabular-nums;}
+    padding:4px 10px; font-size:13px; color:var(--gray); margin-top:14px; font-variant-numeric:tabular-nums;}
   .hero h1{font-size:46px; color:var(--charcoal); line-height:1.02;}
   .hero .subline{margin-top:10px; font-size:16px; color:var(--gray); display:flex; gap:18px; flex-wrap:wrap;}
   .hero .subline b{color:var(--charcoal); font-weight:600;}
@@ -73,8 +74,9 @@
   .info-block.full{grid-column:1 / -1;}
   .desc-text{font-size:16px; line-height:1.65; color:var(--charcoal); max-width:70ch;}
 
-  .equip-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:22px;}
-  .equip-card{border:1px solid var(--gray-line); background:var(--white); overflow:hidden;}
+  .equip-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:22px;}
+  .equip-card{border:1px solid var(--gray-line); background:var(--white); overflow:hidden; cursor:pointer; transition:box-shadow 0.15s, transform 0.15s;}
+  .equip-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.08); transform:translateY(-2px);}
   .equip-card img{width:100%; height:160px; object-fit:cover; display:block; background:var(--offwhite);}
   .equip-card .body{padding:16px 18px 18px;}
   .equip-card h3{font-size:22px; margin-bottom:6px;}
@@ -82,6 +84,23 @@
   .equip-card ul{margin:0 0 12px; padding-left:18px; font-size:14px; line-height:1.6;}
   .equip-card .links{display:flex; gap:14px;}
   .equip-card .links a{font-size:13.5px; font-weight:600; color:var(--red); text-decoration:none; border-bottom:1px solid var(--red);}
+
+  /* ---------- MODAL ---------- */
+  .modal-overlay{position:fixed; inset:0; background:rgba(34,34,34,0.55); display:flex; align-items:center;
+    justify-content:center; z-index:100; padding:24px;}
+  .modal-box{background:var(--white); max-width:640px; width:100%; max-height:86vh; overflow-y:auto; position:relative;}
+  .modal-box img{width:100%; max-height:320px; object-fit:cover; display:block; background:var(--offwhite);}
+  .modal-box .body{padding:28px 32px 32px;}
+  .modal-box h3{font-size:30px; margin-bottom:10px;}
+  .modal-box p{font-size:15.5px; color:var(--gray); line-height:1.6; margin:0 0 14px;}
+  .modal-box ul{margin:0 0 16px; padding-left:20px; font-size:15px; line-height:1.7;}
+  .modal-close{position:absolute; top:14px; right:14px; width:34px; height:34px; border-radius:50%; border:none;
+    background:rgba(255,255,255,0.9); font-size:20px; cursor:pointer; line-height:1;}
+
+  /* ---------- RECURSOS agrupados ---------- */
+  .res-group{margin-bottom:32px;}
+  .res-group-title{font-size:13px; text-transform:uppercase; letter-spacing:0.6px; color:var(--red);
+    font-weight:700; margin-bottom:4px;}
 
   .pass-search{max-width:440px;}
   .pass-search input{width:100%; padding:13px 14px; font-size:16px; border:1px solid var(--gray-line);
@@ -323,12 +342,13 @@ function railItem(f){
 function hero(f){
   return `
     <div class="hero">
-      <span class="stand-badge">${f.Pabellon || ""} ${f.Stand ? "· Stand " + f.Stand : ""}</span>
+      ${f.ImagenURL ? `<img class="hero-img" src="${f.ImagenURL}" alt="${f.Nombre}">` : ""}
       <h1>${f.Nombre}</h1>
       <div class="subline">
         <span><b>${f.FechasTexto}</b></span>
         <span>${f.Ubicacion}</span>
       </div>
+      <span class="stand-badge">${f.Pabellon || ""} ${f.Stand ? "· Stand " + f.Stand : ""}</span>
     </div>
   `;
 }
@@ -358,8 +378,7 @@ function infoTab(f){
         <div class="desc-text">${f.Descripcion || "—"}</div>
       </div>
       <div class="info-grid" style="margin-top:26px;">
-        <div class="info-block"><div class="label">Hotel recomendado</div><div class="value">${f.Hotel || "—"}</div></div>
-        <div class="info-block"><div class="label">Transporte</div><div class="value">${f.Transporte || "—"}</div></div>
+        <div class="info-block"><div class="label">Hotel</div><div class="value">${f.Hotel || "—"}</div></div>
         <div class="info-block"><div class="label">Contacto en el stand</div><div class="value">${f.ContactoNombre || "—"}${f.ContactoTelefono ? " · " + f.ContactoTelefono : ""}</div></div>
         <div class="info-block"><div class="label">Web oficial</div><div class="value">${f.WebOficial ? `<a href="${f.WebOficial}" target="_blank" style="color:var(--red);">${f.WebOficial}</a>` : "—"}</div></div>
       </div>
@@ -369,19 +388,20 @@ function infoTab(f){
 
 function equiposTab(f){
   const items = DATA.equipos.filter(e => e.FeriaID === f.FeriaID);
+  currentEquipList = items;
   if(!items.length) return `<div class="panel"><div class="empty-state">Aún no hay equipos cargados para esta feria.</div></div>`;
   return `
     <div class="panel">
       <div class="equip-grid">
-        ${items.map(e => `
-          <div class="equip-card">
+        ${items.map((e, idx) => `
+          <div class="equip-card" onclick="openEquipModal(${idx})">
             ${e.ImagenURL ? `<img src="${e.ImagenURL}" alt="${e.NombreEquipo}">` : ""}
             <div class="body">
               <h3>${e.NombreEquipo}</h3>
               <p>${e.Descripcion || ""}</p>
               ${e.Argumentario ? `<ul>${e.Argumentario.split("|").map(a => `<li>${a.trim()}</li>`).join("")}</ul>` : ""}
               <div class="links">
-                ${e.FichaTecnicaURL ? `<a href="${e.FichaTecnicaURL}" target="_blank">Ficha técnica ↓</a>` : ""}
+                ${e.FichaTecnicaURL ? `<a href="${e.FichaTecnicaURL}" target="_blank" onclick="event.stopPropagation()">Ficha técnica ↓</a>` : ""}
               </div>
             </div>
           </div>
@@ -411,18 +431,65 @@ function paseTab(personalMatch){
 function recursosTab(f){
   const items = DATA.recursos.filter(r => r.FeriaID === "GENERAL" || r.FeriaID === f.FeriaID);
   if(!items.length) return `<div class="panel"><div class="empty-state">No hay recursos disponibles todavía.</div></div>`;
+
+  // Agrupamos por el campo "Tipo" (ej. Vídeos, Planos, Documentos...).
+  // Los que no tengan Tipo caen en "Otros recursos".
+  const groups = {};
+  items.forEach(r => {
+    const key = (r.Tipo || "Otros recursos").trim();
+    if(!groups[key]) groups[key] = [];
+    groups[key].push(r);
+  });
+
   return `
     <div class="panel">
-      <div class="res-list">
-        ${items.map(r => `
-          <div class="res-row">
-            <div>
-              <div class="rtitle">${r.Titulo}</div>
-              <div class="rtype">${r.Tipo || ""}</div>
-            </div>
-            <a href="${r.URL}" target="_blank">Abrir ↓</a>
+      ${Object.keys(groups).map(groupName => `
+        <div class="res-group">
+          <div class="res-group-title">${groupName}</div>
+          <div class="res-list">
+            ${groups[groupName].map(r => `
+              <div class="res-row">
+                <div class="rtitle">${r.Titulo}</div>
+                <a href="${r.URL}" target="_blank">Abrir ↓</a>
+              </div>
+            `).join("")}
           </div>
-        `).join("")}
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+/* ---------- MODAL DE EQUIPO ---------- */
+let currentEquipList = [];
+let modalEquipIndex = null;
+
+function openEquipModal(idx){ modalEquipIndex = idx; renderModal(); }
+function closeEquipModal(){ modalEquipIndex = null; renderModal(); }
+
+function renderModal(){
+  let el = document.getElementById('modal-root');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'modal-root';
+    document.body.appendChild(el);
+  }
+  if(modalEquipIndex === null || !currentEquipList[modalEquipIndex]){
+    el.innerHTML = "";
+    return;
+  }
+  const e = currentEquipList[modalEquipIndex];
+  el.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this) closeEquipModal()">
+      <div class="modal-box">
+        <button class="modal-close" onclick="closeEquipModal()">×</button>
+        ${e.ImagenURL ? `<img src="${e.ImagenURL}" alt="${e.NombreEquipo}">` : ""}
+        <div class="body">
+          <h3>${e.NombreEquipo}</h3>
+          <p>${e.Descripcion || ""}</p>
+          ${e.Argumentario ? `<ul>${e.Argumentario.split("|").map(a => `<li>${a.trim()}</li>`).join("")}</ul>` : ""}
+          ${e.FichaTecnicaURL ? `<a href="${e.FichaTecnicaURL}" target="_blank" class="btn-red">Ficha técnica ↓</a>` : ""}
+        </div>
       </div>
     </div>
   `;
