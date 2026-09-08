@@ -67,7 +67,7 @@
     border-bottom:3px solid transparent; font-weight:600;}
   .tab-btn.active{color:var(--charcoal); border-bottom-color:var(--red);}
 
-  .panel{padding:36px 48px; max-width:920px;}
+  .panel{padding:36px 48px;}
   .info-grid{display:grid; grid-template-columns:1fr 1fr; gap:28px 40px;}
   .info-block .label{font-size:12px; text-transform:uppercase; letter-spacing:0.5px; color:var(--gray); margin-bottom:6px;}
   .info-block .value{font-size:16px; line-height:1.5;}
@@ -80,10 +80,10 @@
   .equip-card img{width:100%; height:160px; object-fit:cover; display:block; background:var(--offwhite);}
   .equip-card .body{padding:16px 18px 18px;}
   .equip-card h3{font-size:22px; margin-bottom:6px;}
-  .equip-card p{font-size:14.5px; color:var(--gray); line-height:1.55; margin:0 0 10px;}
-  .equip-card ul{margin:0 0 12px; padding-left:18px; font-size:14px; line-height:1.6;}
-  .equip-card .links{display:flex; gap:14px;}
-  .equip-card .links a{font-size:13.5px; font-weight:600; color:var(--red); text-decoration:none; border-bottom:1px solid var(--red);}
+  .equip-card p{font-size:14.5px; color:var(--gray); line-height:1.55; margin:0 0 14px;}
+  .equip-card p.clamp-2{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .btn-more{background:none; border:none; padding:0; font-size:13.5px; font-weight:600; color:var(--red);
+    cursor:pointer; text-decoration:none; border-bottom:1px solid var(--red);}
 
   /* ---------- MODAL ---------- */
   .modal-overlay{position:fixed; inset:0; background:rgba(34,34,34,0.55); display:flex; align-items:center;
@@ -398,11 +398,8 @@ function equiposTab(f){
             ${e.ImagenURL ? `<img src="${e.ImagenURL}" alt="${e.NombreEquipo}">` : ""}
             <div class="body">
               <h3>${e.NombreEquipo}</h3>
-              <p>${e.Descripcion || ""}</p>
-              ${e.Argumentario ? `<ul>${e.Argumentario.split("|").map(a => `<li>${a.trim()}</li>`).join("")}</ul>` : ""}
-              <div class="links">
-                ${e.FichaTecnicaURL ? `<a href="${e.FichaTecnicaURL}" target="_blank" onclick="event.stopPropagation()">Ficha técnica ↓</a>` : ""}
-              </div>
+              <p class="clamp-2">${e.Descripcion || ""}</p>
+              <button class="btn-more" onclick="event.stopPropagation(); openEquipModal(${idx})">Más información</button>
             </div>
           </div>
         `).join("")}
@@ -504,3 +501,4 @@ loadData();
 </script>
 </body>
 </html>
+
