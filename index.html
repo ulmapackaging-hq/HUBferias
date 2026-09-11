@@ -281,13 +281,13 @@ const IS_DEMO = Object.values(CONFIG).some(v => v.startsWith("PEGA_AQUI"));
 const DEMO = {
   ferias: [
     {FeriaID:"interpack2027", Nombre:"Interpack", FechaInicio:"2027-05-04", FechaFin:"2027-05-10",
-     FechasTexto:"4-10 mayo 2027", FechasTexto_EN:"May 4-10, 2027", Ubicacion:"Düsseldorf, Alemania", Pabellon:"Pabellón 14", Stand:"A32",
+     FechasTexto:"4-10 mayo 2027", FechasTexto_EN:"May 4-10, 2027", Ubicacion:"Düsseldorf, Alemania", Ubicacion_EN:"Düsseldorf, Germany", Pabellon:"Pabellón 14", Stand:"A32",
      Descripcion:"La feria de referencia mundial para envasado y procesos. Presentaremos nuestra nueva gama de líneas Wash Down y soluciones de monomateriales para Industria 4.0.",
      Descripcion_EN:"The world's leading trade fair for packaging and processes. We'll present our new range of Wash Down lines and monomaterial solutions for Industry 4.0.",
      Hotel:"Hotel Nikko Düsseldorf (tarifa corporativa reservada)", Transporte:"Traslado en shuttle desde el hotel a las 8:00 y 8:30",
      ContactoNombre:"Ainhoa Etxeberria", ContactoTelefono:"+34 600 000 000", WebOficial:"https://www.interpack.com"},
     {FeriaID:"empack2026", Nombre:"Empack Madrid", FechaInicio:"2026-10-14", FechaFin:"2026-10-15",
-     FechasTexto:"14-15 octubre 2026", FechasTexto_EN:"October 14-15, 2026", Ubicacion:"Madrid, España", Pabellon:"Pabellón 6", Stand:"C18",
+     FechasTexto:"14-15 octubre 2026", FechasTexto_EN:"October 14-15, 2026", Ubicacion:"Madrid, España", Ubicacion_EN:"Madrid, Spain", Pabellon:"Pabellón 6", Stand:"C18",
      Descripcion:"Feria nacional enfocada en clientes de alimentación y bebidas del mercado ibérico.",
      Descripcion_EN:"National fair focused on food and beverage customers in the Iberian market.",
      Hotel:"—", Transporte:"—", ContactoNombre:"Markel Agirre", ContactoTelefono:"+34 600 111 222",
@@ -666,7 +666,7 @@ function railItem(f){
   return `
     <button class="fair-item ${active}" onclick="selectFeria('${f.FeriaID}')">
       <div class="fname">${f.Nombre}</div>
-      <div class="fmeta">${f.Ubicacion} · ${tf(f,'FechasTexto')}</div>
+      <div class="fmeta">${tf(f,'Ubicacion')} · ${tf(f,'FechasTexto')}</div>
       <span class="status-chip ${chipClass}">${statusLabel}</span>
     </button>
   `;
@@ -679,7 +679,7 @@ function hero(f){
       <h1>${f.Nombre}</h1>
       <div class="subline">
         <span><b>${tf(f,'FechasTexto')}</b></span>
-        <span>${f.Ubicacion}</span>
+        <span>${tf(f,'Ubicacion')}</span>
       </div>
       <span class="stand-badge">${f.Pabellon || ""} ${f.Stand ? "· Stand " + f.Stand : ""}</span>
     </div>
@@ -881,7 +881,7 @@ function landingCard(f){
       <div class="landing-card-body">
         <span class="status-chip ${chipClass}">${statusLabel}</span>
         <h3>${f.Nombre}</h3>
-        <p>${f.Ubicacion} · ${tf(f,'FechasTexto')}</p>
+        <p>${tf(f,'Ubicacion')} · ${tf(f,'FechasTexto')}</p>
       </div>
     </button>
   `;
